@@ -15,7 +15,8 @@ class servertime():
     servertz : str
     servercolor : int
 
-    def __init__(self, serverid, servertitle = "Default", serverbeforetext = "Default", serveraftertext = "", serverfooter = "Default Footer", servertz = "Europe/Istanbul", servercolor = main.rebeccapink):
+    def __init__(self, serverid,id = None, servertitle = "Default", serverbeforetext = "Default", serveraftertext = "", serverfooter = "Default Footer", servertz = "Europe/Istanbul", servercolor = main.rebeccapink):
+        self.id = id
         self.serverid = serverid
         self.servertitle = servertitle
         self.serverbeforetext = serverbeforetext
@@ -52,7 +53,7 @@ class servertime():
         else:
             print("Timezone not found")
             tz = pytz.timezone("Europe/Istanbul")
-        return datetime.datetime.now(tz).strftime("%H:%M:%S")
+        return datetime.datetime.now(tz).strftime("%H:%M")
     @staticmethod
     def get(id):
         main.dbDictCursor.execute("SELECT * FROM servertime WHERE id = %s", (id,))
