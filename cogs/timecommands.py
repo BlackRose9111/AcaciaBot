@@ -14,6 +14,8 @@ import models.models
 from models.models import *
 
 
+def str2bool(v):
+    return v.lower() in ("yes", "true", "t", "1")
 class TimeCommands(commands.Cog):
     presencecounter = 0
 
@@ -58,6 +60,7 @@ class TimeCommands(commands.Cog):
         if time is None:
             time = usertime(str(interaction.user.id)).create()
         f = f""" {time.userbeforetext} `{time.time()}`
+        
         {time.useraftertext}"""
         embed = Embed(title=time.usertitle, description=f, colour=time.usercolor)
         embed.set_footer(text=time.userfooter)
@@ -122,6 +125,7 @@ class TimeCommands(commands.Cog):
         if time is None:
             time = servertime(str(ctx.guild.id)).create()
         f = f"""{time.serverbeforetext} `{time.time()}`
+        
         {time.serveraftertext}"""
         embed = Embed(title=time.servertitle, description=f, colour=time.servercolor)
         embed.set_footer(text=time.serverfooter)
@@ -174,7 +178,7 @@ class TimeCommands(commands.Cog):
         await ctx.send("https://en.wikipedia.org/wiki/List_of_tz_database_time_zones")
 
     @nextcord.slash_command(name="membertime",
-                            description="Get the time in a specific timezone for a member in a server")
+                            description="Get the time in a specific timezone for a member in a server",dm_permission=False)
     async def membertime(self, ctx: Interaction):
         time = MemberTime.findifexists(serverid=str(ctx.guild.id), userid=str(ctx.user.id))
         serversettings = Serversettings.findifexists(str(ctx.guild.id))
@@ -186,15 +190,16 @@ class TimeCommands(commands.Cog):
             return
         if time is None:
             time = MemberTime(str(ctx.guild.id), userid=str(ctx.user.id)).create()
-        f = f""" {time.memberbeforetext} `{time.time()}`
-            {time.memberaftertext}"""
-        embed = Embed(title=time.membertitle, description=f, colour=time.membercolor)
-        embed.set_footer(text=time.memberfooter)
+        f = f""" {time.userserverbeforetext} `{time.time()}`
+            
+            {time.userserveraftertext}"""
+        embed = Embed(title=time.userservertitle, description=f, colour=time.userservercolor)
+        embed.set_footer(text=time.userserverfooter)
         await ctx.send(embed=embed)
 
 
     @nextcord.slash_command(name="setmembertime", description="Set the time for a member in a server")
-    async def setmembertime(self, ctx: Interaction,
+    async def setmembertime(self, interaction: Interaction,
                             timezone=SlashOption(name="timezone", description="The timezone you want to set",
                                                  required=False),
                             title=SlashOption(name="title", description="The title of your clock", required=False),
@@ -202,21 +207,21 @@ class TimeCommands(commands.Cog):
                             aftertext=SlashOption(name="aftertext",description="The text after the time", required=False),
                             color = SlashOption(name="color",description="The color of your clock", required=False),
                             footer=SlashOption(description="The footer of your clock", required=False)):
-        serversettings = Serversettings.findifexists(str(ctx.guild.id))
+        serversettings = Serversettings.findifexists(str(interaction.guild.id))
         if serversettings is None:
-            serversettings = Serversettings(str(ctx.guild.id))
+            serversettings = Serversettings(str(interaction.guild.id))
             serversettings.create()
         if serversettings.allowmembertime == False:
-            await ctx.send("This server has disabled this command.")
+            await interaction.send("This server has disabled this command.",ephemeral=True)
             return
-        time = MemberTime.findifexists(serverid=str(ctx.guild.id), userid=str(ctx.user.id))
+        time = MemberTime.findifexists(serverid=str(interaction.guild.id), userid=str(interaction.user.id))
         if time is None:
-            time = MemberTime(serverid=str(ctx.guild.id), userid=str(ctx.user.id)).create()
+            time = MemberTime(serverid=str(interaction.guild.id), userid=str(interaction.user.id)).create()
 
         settingstochange = {}
         if timezone is not None:
             if timezone not in pytz.all_timezones:
-                await ctx.send("Invalid timezone please try the format `America/New_York`")
+                await interaction.send("Invalid timezone please try the format `America/New_York`")
                 return
             settingstochange["membertz"] = timezone
         if title is not None:
@@ -231,14 +236,14 @@ class TimeCommands(commands.Cog):
             try:
                 color = int(color.replace("#", ""))
             except:
-                await ctx.send("Invalid color please try a hex value like `#fa00ff`")
+                await interaction.send("Invalid color please try a hex value like `#fa00ff`")
                 return
             settingstochange["membercolor"] = color
         changeresult = time.update(**settingstochange)
         if changeresult is False:
-            await ctx.send("Settings were not changed")
+            await interaction.send("Settings were not changed")
             return
-        await ctx.send("Updated the member time settings")
+        await interaction.send("Updated the member time settings")
 
 
 
@@ -250,7 +255,7 @@ class TimeCommands(commands.Cog):
         if settings is None:
             settings = Serversettings(str(ctx.guild.id)).create()
         permemojis = (":x:",":white_check_mark:")
-        f = f"""**User Time:** {permemojis[settings.allowservertime]}\n**Server Time:** {permemojis[settings.allowservertime]}\n**Member Time:** {permemojis[settings.allowmembertime]}
+        f = f"""**User Time:** {permemojis[settings.allowusertime]}\n**Server Time:** {permemojis[settings.allowservertime]}\n**Member Time:** {permemojis[settings.allowmembertime]}
             
             Only people with the manage server permission can change these settings"""
         embed = Embed(title="Server Settings", description=f, colour=main.rebeccapink)
@@ -260,24 +265,25 @@ class TimeCommands(commands.Cog):
 
     @nextcord.slash_command(name="setserversettings", description="Set the settings for the server",
                             default_member_permissions=Permissions(manage_guild = True))
-    async def set_server_settings(self, ctx: Interaction, allowusertime :bool = SlashOption(
+    async def set_server_settings(self, ctx: Interaction, allowusertime :str = SlashOption(
                                                                                 description="Whether or not to enable the user time command",
-                                                                                required=False,choices=[True,False]),
-                                  allowservertime : bool =SlashOption(
+                                                                                required=False,choices=["True","False"]),
+                                  allowservertime : str =SlashOption(
                                                           description="Whether or not to enable the server time command",
-                                                          required=False,choices=[True,False]), allowmembertime : bool = SlashOption(
+                                                          required=False,choices=["True","False"]), allowmembertime : str = SlashOption(
                                                                                                    description="Whether or not to enable the member time command",
-                                                                                                   required=False,choices=[True,False])):
+                                                                                                   required=False,choices=["True","False"])):
         settings = Serversettings.findifexists(serverid=str(ctx.guild.id))
         if settings is None:
             settings = Serversettings(str(ctx.guild.id)).create()
         settingstochange = {}
         if allowusertime is not None:
-            settingstochange["usertime"] = allowusertime
+            settingstochange["allowusertime"] = str2bool(allowusertime)
         if allowservertime is not None:
-            settingstochange["servertime"] = allowservertime
+            settingstochange["allowservertime"] = str2bool(allowservertime)
         if allowmembertime is not None:
-            settingstochange["membertime"] = allowmembertime
+            settingstochange["allowmembertime"] = str2bool(allowmembertime)
+        print(settingstochange)
         changeresult = settings.update(**settingstochange)
         if changeresult is False:
             await ctx.send("Settings were not changed")

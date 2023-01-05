@@ -181,7 +181,7 @@ class MemberTime():
         self.userservertz = userservertz
         self.userservercolor = userservercolor
     def create(self):
-        main.dbDictCursor.execute("INSERT INTO userservertime (userid, serverid, userservertitle, userserverbeforetext, userserveraftertext, userserverfooter, userservertz, userservercolor) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (self.userid, self.serverid, self.userservertitle, self.userserverbeforetext, self.userserveraftertext, self.userserverfooter, self.userservertz, self.userservercolor))
+        main.dbDictCursor.execute("INSERT INTO membertime (userid, serverid, userservertitle, userserverbeforetext, userserveraftertext, userserverfooter, userservertz, userservercolor) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (self.userid, self.serverid, self.userservertitle, self.userserverbeforetext, self.userserveraftertext, self.userserverfooter, self.userservertz, self.userservercolor))
         self.id = main.dbDictCursor.lastrowid
         print("Created new user server time with id: " + str(self.id))
         return self
@@ -192,12 +192,12 @@ class MemberTime():
             print("Invalid value")
             return False
         print(**kwargs)
-        main.dbDictCursor.execute("UPDATE userservertime SET userid = %s, serverid = %s, userservertitle = %s, userserverbeforetext = %s, userserveraftertext = %s, userserverfooter = %s, userservertz = %s, userservercolor = %s WHERE id = %s", (self.userid, self.serverid, self.userservertitle, self.userserverbeforetext, self.userserveraftertext, self.userserverfooter, self.userservertz, self.userservercolor, self.id))
+        main.dbDictCursor.execute("UPDATE membertime SET userid = %s, serverid = %s, userservertitle = %s, userserverbeforetext = %s, userserveraftertext = %s, userserverfooter = %s, userservertz = %s, userservercolor = %s WHERE id = %s", (self.userid, self.serverid, self.userservertitle, self.userserverbeforetext, self.userserveraftertext, self.userserverfooter, self.userservertz, self.userservercolor, self.id))
         print("Updated user server time with id: " + str(self.id))
         return self
     def delete(self):
         if self.id:
-            main.dbDictCursor.execute("DELETE FROM userservertime WHERE id = %s", (self.id,))
+            main.dbDictCursor.execute("DELETE FROM membertime WHERE id = %s", (self.id,))
             print("Deleted user server time with id: " + str(self.id))
             return True
         else:
@@ -212,19 +212,19 @@ class MemberTime():
             return datetime.datetime.now(pytz.timezone(self.userservertz)).strftime("%H:%M")
     @staticmethod
     def get(id):
-        main.dbDictCursor.execute("SELECT * FROM userservertime WHERE id = %s", (id,))
+        main.dbDictCursor.execute("SELECT * FROM membertime WHERE id = %s", (id,))
         result = main.dbDictCursor.fetchone()
         print("Got user server time with id: " + str(id))
         return MemberTime(**result)
     @staticmethod
     def getall():
-        main.dbDictCursor.execute("SELECT * FROM userservertime")
+        main.dbDictCursor.execute("SELECT * FROM membertime")
         print("Got all user server times")
         result = main.dbDictCursor.fetchall()
         return [MemberTime(**x) for x in result]
     @staticmethod
     def findifexists(userid, serverid):
-        main.dbDictCursor.execute("SELECT * FROM userservertime WHERE userid = %s AND serverid = %s", (userid, serverid))
+        main.dbDictCursor.execute("SELECT * FROM membertime WHERE userid = %s AND serverid = %s", (userid, serverid))
         result = main.dbDictCursor.fetchone()
         if result is not None:
             print("Found user server time with userid: " + str(userid) + " and serverid: " + str(serverid))
@@ -261,7 +261,6 @@ class Serversettings():
     def update(self,**kwargs):
         for key, value in kwargs.items():
             setattr(self, key, value)
-        print(**kwargs)
         main.dbDictCursor.execute("UPDATE serversettings SET allowusertime = %s, allowmembertime = %s, allowservertime = %s WHERE id = %s", (self.allowusertime, self.allowmembertime, self.allowservertime, self.id))
         print("Server Settings Updated")
         return self
